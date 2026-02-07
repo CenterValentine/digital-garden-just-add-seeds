@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Work+Sans:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-[#f5f1ea] text-ink font-body;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.gradient-backdrop {
+  background: radial-gradient(circle at top, rgba(149, 213, 178, 0.5), transparent 45%),
+    radial-gradient(circle at 20% 20%, rgba(45, 106, 79, 0.2), transparent 35%),
+    linear-gradient(120deg, #faf7f2, #f0efe9);
+}

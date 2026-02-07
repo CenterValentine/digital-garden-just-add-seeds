@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  GOOGLE
+  EMAIL
+}
+
+enum CatalogType {
+  PLANT
+  IRRIGATION
+  ARTIFACT
+  FURNITURE
+}
+
+enum OverlayType {
+  AI_ENHANCED
+  BYOI
+}
+
+enum PlantStatus {
+  PLANTED
+  GROWING
+  HARVESTED
+}
+
+enum RuleScope {
+  PLANT
+  GLOBAL
+}
+
+enum RuleTriggerType {
+  TIME
+  CONDITION
+}
+
+enum RuleOutputType {
+  TASK
+  ALERT
+  MESSAGE
+}
+
+enum TaskStatus {
+  OPEN
+  DONE
+  SNOOZED
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  image        String?
+  emailVerified DateTime?
+  authProvider AuthProvider
+  passwordHash String?
+  createdAt    DateTime @default(now())
+
+  profile  Profile?
+  gardens  Garden[]
+  inbox    InboxMessage[]
+  accounts Account[]
+  sessions Session[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Profile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  intents         String[]
+  experienceLevel String?
+  climateZone     String?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Garden {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  baseLocation Json
+  timezone     String
+
+  user         User         @relation(fields: [userId], references: [id])
+  areas        GardenArea[]
+  overlays     MapOverlay[]
+  items        GardenItem[]
+  enhancements OverlayEnhancementAttempt[]
+}
+
+model GardenArea {
+  id             String   @id @default(cuid())
+  gardenId       String
+  name           String
+  polygonGeoJSON Json
+  areaSqM        Float
+  isLocked       Boolean  @default(false)
+
+  garden Garden @relation(fields: [gardenId], references: [id])
+  items  GardenItem[]
+}
+
+model MapOverlay {
+  id              String      @id @default(cuid())
+  gardenId        String
+  type            OverlayType
+  imageUrl        String
+  bounds          Json
+  opacity         Float
+  alignmentPoints Json?
+  createdAt       DateTime    @default(now())
+
+  garden Garden @relation(fields: [gardenId], references: [id])
+}
+
+model CatalogItem {
+  id           String      @id @default(cuid())
+  type         CatalogType
+  name         String
+  categoryPath String
+  metadata     Json
+
+  plantCatalog PlantCatalog?
+  items        GardenItem[]
+}
+
+model PlantCatalog {
+  id                 String   @id @default(cuid())
+  catalogItemId      String   @unique
+  spacingCm          Int
+  growthDays         Int
+  sunNeeds           String
+  waterNeeds         String
+  compatiblePlants   String[]
+  antagonisticPlants String[]
+  zones              String[]
+  defaultRules       Json
+
+  catalogItem CatalogItem @relation(fields: [catalogItemId], references: [id])
+}
+
+model GardenItem {
+  id            String      @id @default(cuid())
+  gardenId      String
+  gardenAreaId  String
+  catalogItemId String
+  type          CatalogType
+  location      Json
+  rotation      Float?
+  createdAt     DateTime    @default(now())
+
+  garden      Garden      @relation(fields: [gardenId], references: [id])
+  area        GardenArea  @relation(fields: [gardenAreaId], references: [id])
+  catalogItem CatalogItem @relation(fields: [catalogItemId], references: [id])
+  plant       PlantInstance?
+}
+
+model PlantInstance {
+  id           String      @id @default(cuid())
+  gardenItemId String      @unique
+  plantedAt    DateTime
+  status       PlantStatus
+  overrides    Json
+
+  gardenItem   GardenItem       @relation(fields: [gardenItemId], references: [id])
+  assignments  RuleAssignment[]
+  tasks        Task[]
+  alerts       Alert[]
+}
+
+model RuleTemplate {
+  id            String           @id @default(cuid())
+  scope         RuleScope
+  name          String
+  version       String
+  triggerType   RuleTriggerType
+  paramsSchema  Json
+  defaultParams Json
+  outputType    RuleOutputType
+
+  assignments RuleAssignment[]
+}
+
+model RuleAssignment {
+  id              String       @id @default(cuid())
+  plantInstanceId String
+  ruleTemplateId  String
+  enabled         Boolean      @default(true)
+  paramsOverride  Json
+
+  plantInstance PlantInstance @relation(fields: [plantInstanceId], references: [id])
+  ruleTemplate  RuleTemplate  @relation(fields: [ruleTemplateId], references: [id])
+}
+
+model Task {
+  id              String     @id @default(cuid())
+  plantInstanceId String
+  title           String
+  dueAt           DateTime
+  status          TaskStatus
+  sourceRuleId    String
+
+  plantInstance PlantInstance @relation(fields: [plantInstanceId], references: [id])
+}
+
+model Alert {
+  id              String        @id @default(cuid())
+  plantInstanceId String
+  title           String
+  severity        AlertSeverity
+  createdAt       DateTime      @default(now())
+  sourceRuleId    String
+
+  plantInstance PlantInstance @relation(fields: [plantInstanceId], references: [id])
+}
+
+model InboxMessage {
+  id           String   @id @default(cuid())
+  userId       String
+  title        String
+  body         String
+  createdAt    DateTime @default(now())
+  sourceRuleId String?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model OverlayEnhancementAttempt {
+  id        String   @id @default(cuid())
+  gardenId  String
+  createdAt DateTime @default(now())
+
+  garden Garden @relation(fields: [gardenId], references: [id])
+}
