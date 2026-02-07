@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function OnboardingPage() {
@@ -9,11 +9,28 @@ export default function OnboardingPage() {
   const [intents, setIntents] = useState('Vegetables');
   const [experience, setExperience] = useState('');
   const [climateZone, setClimateZone] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   if (status === 'loading') {
     return <div className="min-h-screen px-6 py-12">Loading…</div>;
   }
+
+  useEffect(() => {
+    const checkProfile = async () => {
+      const res = await fetch('/api/profile');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.user?.profile) {
+        router.push('/plan');
+      }
+    };
+
+    if (session?.user?.email) {
+      checkProfile();
+    }
+  }, [router, session?.user?.email]);
 
   return (
     <main className="min-h-screen px-6 py-12">
@@ -33,19 +50,26 @@ export default function OnboardingPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               if (!session?.user?.email) return;
+              setSubmitting(true);
+              setError(null);
 
-              await fetch('/api/auth/signup', {
-                method: 'POST',
+              const res = await fetch('/api/profile', {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  email: session.user.email,
                   name: session.user.name ?? 'Gardener',
-                  authProvider: 'GOOGLE',
                   intents: intents.split(',').map((item) => item.trim()).filter(Boolean),
                   experienceLevel: experience,
                   climateZone
                 })
               });
+
+              if (!res.ok) {
+                const payload = await res.json().catch(() => null);
+                setError(payload?.error ?? 'Unable to save onboarding.');
+                setSubmitting(false);
+                return;
+              }
 
               router.push('/plan');
             }}
@@ -68,8 +92,9 @@ export default function OnboardingPage() {
               value={climateZone}
               onChange={(event) => setClimateZone(event.target.value)}
             />
+            {error ? <p className="text-sm text-red-600">{error}</p> : null}
             <button className="rounded-full bg-ink px-4 py-2 text-sm text-white" type="submit">
-              Save &amp; Continue
+              {submitting ? 'Saving…' : 'Save & Continue'}
             </button>
           </form>
         </section>
