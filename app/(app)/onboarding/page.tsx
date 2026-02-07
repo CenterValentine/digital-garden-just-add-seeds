@@ -13,10 +13,6 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  if (status === 'loading') {
-    return <div className="min-h-screen px-6 py-12">Loading…</div>;
-  }
-
   useEffect(() => {
     const checkProfile = async () => {
       const res = await fetch('/api/profile');
@@ -31,6 +27,10 @@ export default function OnboardingPage() {
       checkProfile();
     }
   }, [router, session?.user?.email]);
+
+  if (status === 'loading') {
+    return <div className="min-h-screen px-6 py-12">Loading…</div>;
+  }
 
   return (
     <main className="min-h-screen px-6 py-12">
