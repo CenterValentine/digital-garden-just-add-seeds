@@ -1,12 +1,15 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') ?? '/onboarding';
 
   return (
     <main className="min-h-screen px-6 py-12">
@@ -22,7 +25,7 @@ export default function SignInPage() {
         <section className="glass rounded-2xl p-6 shadow-glass">
           <button
             className="w-full rounded-full bg-ink px-4 py-2 text-sm text-white"
-            onClick={() => signIn('google')}
+            onClick={() => signIn('google', { callbackUrl })}
           >
             Continue with Google
           </button>
@@ -31,7 +34,7 @@ export default function SignInPage() {
             className="flex flex-col gap-3"
             onSubmit={(event) => {
               event.preventDefault();
-              signIn('credentials', { email, password, callbackUrl: '/plan' });
+              signIn('credentials', { email, password, callbackUrl });
             }}
           >
             <input

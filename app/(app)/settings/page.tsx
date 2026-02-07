@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { SectionShell } from '@/components/SectionShell';
+import {
+  INTENT_OPTIONS,
+  EXPERIENCE_OPTIONS,
+  CLIMATE_ZONE_OPTIONS
+} from '@/lib/survey-options';
 
 type ProfilePayload = {
   name: string;
@@ -89,34 +94,63 @@ export default function SettingsPage() {
             disabled
           />
 
-          <label className="text-xs uppercase tracking-[0.2em] text-ink/50">Intents</label>
-          <input
-            className="rounded-xl border border-ink/10 bg-white/60 px-4 py-2 text-sm"
-            value={profile.intents.join(', ')}
-            onChange={(event) =>
-              setProfile({
-                ...profile,
-                intents: event.target.value
-                  .split(',')
-                  .map((item) => item.trim())
-                  .filter(Boolean)
-              })
-            }
-          />
+          <div className="rounded-2xl border border-ink/10 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-ink/60">Intents</p>
+            <div className="mt-3 grid gap-2">
+              {INTENT_OPTIONS.map((intent) => (
+                <label key={intent} className="flex items-center gap-2 text-sm text-ink/80">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={profile.intents.includes(intent)}
+                    onChange={(event) => {
+                      setProfile((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              intents: event.target.checked
+                                ? [...prev.intents, intent]
+                                : prev.intents.filter((value) => value !== intent)
+                            }
+                          : prev
+                      );
+                    }}
+                  />
+                  {intent}
+                </label>
+              ))}
+            </div>
+          </div>
 
           <label className="text-xs uppercase tracking-[0.2em] text-ink/50">Experience</label>
-          <input
+          <select
             className="rounded-xl border border-ink/10 bg-white/60 px-4 py-2 text-sm"
             value={profile.experienceLevel ?? ''}
-            onChange={(event) => setProfile({ ...profile, experienceLevel: event.target.value })}
-          />
+            onChange={(event) =>
+              setProfile({ ...profile, experienceLevel: event.target.value })
+            }
+          >
+            <option value="">Select experience</option>
+            {EXPERIENCE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
 
           <label className="text-xs uppercase tracking-[0.2em] text-ink/50">Climate Zone</label>
-          <input
+          <select
             className="rounded-xl border border-ink/10 bg-white/60 px-4 py-2 text-sm"
             value={profile.climateZone ?? ''}
             onChange={(event) => setProfile({ ...profile, climateZone: event.target.value })}
-          />
+          >
+            <option value="">Select zone</option>
+            {CLIMATE_ZONE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           {status === 'saved' ? <p className="text-sm text-leaf">Saved.</p> : null}

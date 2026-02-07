@@ -4,7 +4,7 @@ import { badRequest, json } from '@/lib/api';
 
 const payloadSchema = z.object({
   gardenId: z.string(),
-  gardenAreaId: z.string(),
+  gardenAreaId: z.string().optional(),
   catalogItemId: z.string(),
   location: z.object({ lat: z.number(), lng: z.number() }),
   rotation: z.number().optional(),
@@ -28,11 +28,6 @@ export async function POST(request: Request) {
 
   const { gardenId, gardenAreaId, catalogItemId, location, rotation, plantedAt, overrides } = parsed.data;
 
-  const area = await prisma.gardenArea.findUnique({ where: { id: gardenAreaId } });
-  if (!area) {
-    return badRequest('Garden area not found.');
-  }
-
   const catalogItem = await prisma.catalogItem.findUnique({
     where: { id: catalogItemId },
     include: { plantCatalog: true }
@@ -41,14 +36,14 @@ export async function POST(request: Request) {
     return badRequest('Catalog item not found.');
   }
 
-  if (catalogItem.type === 'PLANT' && area.isLocked) {
-    return badRequest('Area is locked and cannot be edited after planting.');
+  if (catalogItem.type === 'PLANT' && !gardenAreaId) {
+    return badRequest('Planting areas are required for plants.');
   }
 
   const item = await prisma.gardenItem.create({
     data: {
       gardenId,
-      gardenAreaId,
+      gardenAreaId: gardenAreaId ?? null,
       catalogItemId,
       type: catalogItem.type,
       location,
@@ -77,10 +72,7 @@ export async function POST(request: Request) {
       include: { assignments: true }
     });
 
-    await prisma.gardenArea.update({
-      where: { id: gardenAreaId },
-      data: { isLocked: true }
-    });
+    // Plants belong to a planting area, but we do not lock areas anymore.
   }
 
   return json({ item, plantInstance });

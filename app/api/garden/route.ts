@@ -9,6 +9,21 @@ const payloadSchema = z.object({
   timezone: z.string().min(1)
 });
 
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get('userId');
+  if (!userId) {
+    return badRequest('Missing userId.');
+  }
+
+  const garden = await prisma.garden.findFirst({
+    where: { userId },
+    include: { areas: true }
+  });
+
+  return json({ garden });
+}
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = payloadSchema.safeParse(body);

@@ -5,7 +5,6 @@ import { polygonWithinRadius, type LatLng } from '@/lib/geo';
 
 const payloadSchema = z.object({
   gardenId: z.string(),
-  name: z.string().min(1),
   polygonGeoJSON: z.object({
     type: z.literal('Polygon'),
     coordinates: z.array(z.array(z.tuple([z.number(), z.number()])))
@@ -23,12 +22,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = payloadSchema.safeParse(body);
   if (!parsed.success) {
-    return badRequest('Invalid area payload.');
-  }
-
-  const garden = await prisma.garden.findUnique({ where: { id: parsed.data.gardenId } });
-  if (!garden?.propertyBoundaryGeoJSON) {
-    return badRequest('Set a property boundary before adding planting areas.');
+    return badRequest('Invalid property boundary payload.');
   }
 
   const points = extractPoints(parsed.data.polygonGeoJSON);
@@ -38,17 +32,16 @@ export async function POST(request: Request) {
 
   const withinRadius = polygonWithinRadius(points, parsed.data.baseLocation, 1609.34);
   if (!withinRadius) {
-    return badRequest('Area must be within 1 mile of the base location.');
+    return badRequest('Boundary must be within 1 mile of the base location.');
   }
 
-  const area = await prisma.gardenArea.create({
+  const garden = await prisma.garden.update({
+    where: { id: parsed.data.gardenId },
     data: {
-      gardenId: parsed.data.gardenId,
-      name: parsed.data.name,
-      polygonGeoJSON: parsed.data.polygonGeoJSON,
-      areaSqM: parsed.data.areaSqM
+      propertyBoundaryGeoJSON: parsed.data.polygonGeoJSON,
+      propertyBoundarySqM: parsed.data.areaSqM
     }
   });
 
-  return json({ area });
+  return json({ garden });
 }
