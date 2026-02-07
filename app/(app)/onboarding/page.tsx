@@ -3,10 +3,15 @@
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  INTENT_OPTIONS,
+  EXPERIENCE_OPTIONS,
+  CLIMATE_ZONE_OPTIONS
+} from '@/lib/survey-options';
 
 export default function OnboardingPage() {
   const { data: session, status } = useSession();
-  const [intents, setIntents] = useState('Vegetables');
+  const [intents, setIntents] = useState<string[]>(['Vegetables']);
   const [experience, setExperience] = useState('');
   const [climateZone, setClimateZone] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +63,7 @@ export default function OnboardingPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   name: session.user.name ?? 'Gardener',
-                  intents: intents.split(',').map((item) => item.trim()).filter(Boolean),
+                  intents,
                   experienceLevel: experience,
                   climateZone
                 })
@@ -74,24 +79,57 @@ export default function OnboardingPage() {
               router.push('/plan');
             }}
           >
-            <input
+            <div className="rounded-2xl border border-ink/10 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-ink/60">Intents</p>
+              <div className="mt-3 grid gap-2">
+                {INTENT_OPTIONS.map((intent) => (
+                  <label key={intent} className="flex items-center gap-2 text-sm text-ink/80">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={intents.includes(intent)}
+                      onChange={(event) => {
+                        setIntents((prev) =>
+                          event.target.checked
+                            ? [...prev, intent]
+                            : prev.filter((value) => value !== intent)
+                        );
+                      }}
+                    />
+                    {intent}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <label className="text-xs uppercase tracking-[0.2em] text-ink/60">Experience</label>
+            <select
               className="rounded-xl border border-ink/10 bg-white/60 px-4 py-2 text-sm"
-              placeholder="Intents (comma-separated)"
-              value={intents}
-              onChange={(event) => setIntents(event.target.value)}
-            />
-            <input
-              className="rounded-xl border border-ink/10 bg-white/60 px-4 py-2 text-sm"
-              placeholder="Experience level"
               value={experience}
               onChange={(event) => setExperience(event.target.value)}
-            />
-            <input
+            >
+              <option value="">Select experience</option>
+              {EXPERIENCE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+
+            <label className="text-xs uppercase tracking-[0.2em] text-ink/60">Climate Zone</label>
+            <select
               className="rounded-xl border border-ink/10 bg-white/60 px-4 py-2 text-sm"
-              placeholder="Climate zone (optional)"
               value={climateZone}
               onChange={(event) => setClimateZone(event.target.value)}
-            />
+            >
+              <option value="">Select zone</option>
+              {CLIMATE_ZONE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
             <button className="rounded-full bg-ink px-4 py-2 text-sm text-white" type="submit">
               {submitting ? 'Saving…' : 'Save & Continue'}
