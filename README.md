@@ -13,6 +13,7 @@ Create a `.env` file (see `.env.example`).
 ```bash
 DATABASE_URL="postgresql://user:password@localhost:5432/garden_map"
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="your-google-maps-key"
+PORT="3200"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="replace-with-32+-char-secret"
 GOOGLE_CLIENT_ID="your-google-client-id"
@@ -39,9 +40,11 @@ pnpm dev
 - Middleware protects `/plan`, `/plant`, `/grow`, `/watch`, `/onboarding`, and `/settings`.
 - Onboarding gate: after auth, users without a profile are redirected to `/onboarding`.
 
+## Vercel Notes
+- This repo is pnpm-first. In Vercel, set **Install Command** to `pnpm install` if it defaults to npm.
+
 ## Notes
 - API routes assume a database connection and minimal validation.
 - AI enhancement is modeled as an async pipeline. The `/api/overlay/enhance` route enforces 7 attempts per day.
 - BYOI overlays accept pre-aligned image URLs and calibration points.
 - Rule factories live in `lib/rules/factories.ts` and are intended to be wired into a cron/scheduler.
-
